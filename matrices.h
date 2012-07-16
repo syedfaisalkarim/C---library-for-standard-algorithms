@@ -1,132 +1,168 @@
+/*a simple class to implement matrices
+ * provides basic operations
+ * T => float,double,long long int,int
+ */
+
 #include<iostream>
 #include<vector>
 #include<cmath>
 
 using namespace std;
 
+template < class T >
 class matrix
 {
+  
+private:
+  
+  vector< vector<T> > matrix_elements; 
+  int num_row;
+  int num_col;
+  
 public:
-  float mat[100][100];
-  int n,m;
-  matrix(int a,int b)
+  
+  matrix<T>(int row,int col)
   {
-    n=a;
-    m=b;
+    num_row=row;
+    num_col=col;
   }
-  friend matrix operator+(matrix a,matrix b);
-  friend matrix operator*(matrix a,matrix b);
+  
+  matrix<T>(const matrix<T> &temp)
+  {
+    num_row=temp.num_row;
+    num_col=temp.num_col;
+    for(int i=0;i<num_row;i++)
+    {
+      for(int j=0;j<num_col;j++)
+      {
+	matrix_elements[i][j]=temp.matrix_elements[i][j];
+      }
+    }
+  }
+  
+  bool check_invalid()
+  {
+    if(num_row==0 && num_col==0)
+      return 1;
+    else
+      return 0;
+  }
+  
+  /*operators and functions
+   * % every element of the matrix by a constant
+   * addition
+   * subtraction
+   * multiplication
+   * transpose
+   */
+  
+  void operator%(int mod);
+  
+  matrix<T> operator+(matrix<T> param);
+  matrix<T> operator-(matrix<T> param);
+  matrix<T> operator*(matrix<T> param);
+  matrix<T> transpose();
+  
+  friend ostream& operator<<(ostream& out,matrix<T> param)
+  {
+    for(int i=0;i<param.num_row;i++)
+    {
+      for(int j=0;j<param.num_col;j++)
+      {
+	out<<param.matrix_elements[i][j]<<" ";
+      }
+      out<<"\n";
+    }
+  }
+  
 };
 
-matrix operator+(matrix a,matrix b)
+template < class T >
+void matrix<T>::operator%(int mod)
 {
-  matrix d(a.n,a.m);
-  cout<<"\nim here\n";
-  for(int i=0;i<d.n;i++)
+  for(int i=0;i<num_row;i++)
   {
-    for(int j=0;j<d.m;j++)
-      d.mat[i][j]=a.mat[i][j]+b.mat[i][j];
-  }
-  return d;
-}
-
-matrix operator*(matrix a,matrix b)
-{
-  matrix d(a.n,b.m);
-  for(int i=0;i<a.n;i++)
-  {
-    for(int j=0;j<b.m;j++)
+    for(int j=0;j<num_col;j++)
     {
-      d.mat[i][j]=0;
-      for(int k=0;k<a.m;k++)
-	d.mat[i][j]+=a.mat[i][k]*b.mat[k][j];
+      matrix_elements[i][j]=matrix_elements[i][j]%mod;
     }
   }
-  return d;
 }
 
-matrix transpose(matrix a)
+template < class T >
+matrix<T> matrix<T>::operator+(matrix<T> param)
 {
-  matrix d(a.n,a.m);
-  cout<<"\nim here\n";
-  for(int i=0;i<d.n;i++)
+  if(num_row!=param.num_row || num_col!=param.num_col)
   {
-    for(int j=0;j<d.m;j++)
-      d.mat[i][j]=a.mat[j][i];
+    cout<<"These matrices cannot be added\n";
+    return matrix<T>(0,0);
   }
-  return d;
+  
+  matrix<T> ret(num_row,num_col);
+  for(int i=0;i<num_row;i++)
+  {
+    for(int j=0;j<num_col;j++)
+    {
+      ret.matrix_elements[i][j]=matrix_elements[i][j]+param.matrix_elements[i][j];
+    }
+  }
+  return ret;
 }
 
-int det(matrix a)
+template < class T >
+matrix<T> matrix<T>::operator-(matrix<T> param)
 {
-  if(a.n==2 && a.m==2)
-    return a.mat[0][0]*a.mat[1][1]-a.mat[0][1]*a.mat[1][0];
-  int d=0,flag=1;
-  matrix b(a.n-1,a.m-1);
-  for(int i=0;i<a.m;i++)
+  if(num_row!=param.num_row || num_col!=param.num_col)
   {
-    for(int j=1,l=0;j<a.n;j++,l++)
+    cout<<"These matrices cannot be subtracted\n";
+    return matrix<T>(0,0);
+  }
+  
+  matrix<T> ret(num_row,num_col);
+  for(int i=0;i<num_row;i++)
+  {
+    for(int j=0;j<num_col;j++)
     {
-      for(int k=0,h=0;k<a.m;k++)
+      ret.matrix_elements[i][j]=matrix_elements[i][j]+param.matrix_elements[i][j];
+    }
+  }
+  return ret;
+}
+
+template < class T >
+matrix<T> matrix<T>::operator*(matrix<T> param)
+{
+  if(num_col!=param.num_row)
+  {
+    cout<<"These matrices cannot be multiplied\n";
+    return matrix<T>(0,0);
+  }
+  
+  matrix<T> ret(num_row,num_col);
+  for(int i=0;i<num_row;i++)
+  {
+    for(int j=0;j<param.num_col;j++)
+    {
+      ret.matrix_elements[i][j]=0;
+      for(int k=0;k<num_col;k++)
       {
-	if(k==i)
-	  continue;
-	b.mat[l][h]=a.mat[j][k];
-	h++;
+	ret.matrix_elements[i][j]+=matrix_elements[i][k]*param.matrix_elements[k][j];
       }
     }
-    d+=(a.mat[0][i]*det(b))*flag;
-    flag=(-1)*flag;
   }
-  return d;
+  return ret;
 }
 
-void lup_decomposition(matrix a)
+template < class T >
+matrix<T> matrix<T>::transpose()
 {
-  int n=a.n;
-  int i,k,p=0,k_,j;
-  vector<int> pi(n);
-  for(i=0;i<n;i++)
-    pi[i]=i;
-  for(k=0;k<n;k++)
+  matrix ret(num_row,num_col);
+  for(int i=0;i<num_row;i++)
   {
-    p=0;
-    for(i=k;i<n;i++)
+    for(int j=0;j<num_col;j++)
     {
-      if(fabs(a.mat[i][k])>p)
-      {
-	p=fabs(a.mat[i][k]);
-	k_=i;
-      }
-    }
-    if(p<1e-10)
-    {
-      cout<<"\nerror singular matrix\n";
-      return;
-    }
-    int temp;
-    temp=pi[k];
-    pi[k]=pi[k_];
-    pi[k_]=temp;
-    for(i=0;i<n;i++)
-    {
-      temp=a.mat[k][i];
-      a.mat[k][i]=a.mat[k_][i];
-      a.mat[k_][i]=temp;
-    }
-    for(i=k+1;i<n;i++)
-    {
-      a.mat[i][k]=a.mat[i][k]/a.mat[k][k];
-      for(j=k+1;j<n;j++)
-	a.mat[i][j]=a.mat[i][j]-a.mat[i][k]*a.mat[k][j];
+      ret.matrix_elements[i][j]=matrix_elements[j][i];
     }
   }
-  for(int f=0;f<n;f++)
-  {
-    cout<<"\n"<<pi[f]<<" ";
-    for(int g=0;g<n;g++)
-      cout<<a.mat[f][g]<<" ";
-  }
-  cout<<"\n";
-  return;
+  return ret;
 }
