@@ -3,68 +3,84 @@
 #include<cstdio>
 #include<vector>
 #include<map>
+#include "numberthoery.h"
 
 using namespace std;
 
-int modular_exponentiation(int a,int b,int m)
-{
-  int result=1;
-  while(b)
-  {
-    if(b&1)
-      result=(result*a)%m;
-    if(b>>=1)
-      result=(result*result)%m;    
-  }
-  return result;
-}
 
+/*string matching algo - O(n*m)
+ * converts strings into numerical representation
+ * since it can be very big numbers are stored mod of some prime chosen
+ * if the main string and substring match numerically at point i then the expansion of the strings are compared to determine the match
+ */
 
-int rabin_karp_matcher(string s,string sub,int d,int q)
+int rabin_karp_matcher(string main_str,string sub,int alpha_size,long long int mod)
 {
-  int i,n=s.size(),m=sub.size(),h=modular_exponentiation(d,m-1,q),p=0,t=0,count=0;
-  for(i=0;i<m;i++)
+  int main_str_size=main_str.size(),sub_size=sub.size(),count=0;
+  
+  long long int h=modular_exponentiation(alpha_size,sub_size-1,mod);
+  long long int sub_num_representation=0,main_str_num_representation=0;
+  /* h - the coefficient of the most significant character in the substring
+   * sub_num_representation - stores numerical representation of substring
+   * main_str_num_representation - stores numerical representation of main string
+   */
+  
+  
+  //initializes sub_num_representation and main_str_num_representation
+  for(int i=0;i<sub_size;i++)
   {
-    p=(d*p+(sub[i]-'a'))%q;
-    t=(d*t+(s[i]-'a'))%q;
+    sub_num_representation=(alpha_size*sub_num_representation+(sub[i]-'a'))%mod;
+    main_str_num_representation=(alpha_size*main_str_num_representation+(main_str[i]-'a'))%mod;
   }
-  cout<<"\n"<<p;
-  for(i=0;i<=n-m;i++)
+  
+  
+  //iterate through main string checking if equal to substring numerically
+  for(int main_str_idx=0;main_str_idx<=main_str_size-sub_size;main_str_idx++)
   {
-    cout<<"\n"<<p<<" "<<t;
-    if(p==t)
+    //if numerically equal then actual strings are matched to determine class
+    if(sub_num_representation==main_str_num_representation)
     {
-      bool flag=1;
-      for(int k=0,l=i;k<m;k++,l++)
+      bool possible_match=1;
+      for(int k=0,l=main_str_idx;k<sub_size;k++,l++)
       {
-	if(sub[k]!=s[l])
+	if(sub[k]!=main_str[l])
 	{
-	  flag=0;
-	  break;
+	  possible_match=0;
 	}
       }
-      if(flag)
+      if(possible_match)
       {
 	count++;
-	printf("\npattern occurs with shift:- %d\n",i);
+	printf("\npattern occurs with shift:- %d\n",main_str_idx);
       }
     }
-    if(i<n-m)
-      t=(d*(t-(s[i]-'a')*h)+(s[i+m]-'a'))%q;
+    
+    
+    if(main_str_idx<main_str_size-sub_size)
+    {
+      main_str_num_representation=(alpha_size*(main_str_num_representation-(main_str[main_str_idx]-'a')*h)
+                                   + (main_str[main_str_idx+sub_size]-'a'))%mod;
+    }
+  
+    
   }
   return count;
 }
 
+
+/*creates the automata for the given substring - O(n*alpha_size)
+ * here transitions are made in the automata such that delta(q,a) = length of largest prefix 
+ */
 map<pair<char,int>,int > compute_transition_function(string sub,vector<char> alphabet)
 {
   map<pair<char,int>,int > automata;
-  int m=sub.size(),q;
+  int sub_size=sub.size();
   pair<char,int> temp;
-  for(q=0;q<=m;q++)
+  for(int q=0;q<=sub_size;q++)
   {
     for(int i=0;i<alphabet.size();i++)
     {
-      int k=min(m+1,q+2);
+      int k=min(sub_size+1,q+2);
       while(1)
       {
 	bool flag=1;
@@ -87,120 +103,140 @@ map<pair<char,int>,int > compute_transition_function(string sub,vector<char> alp
   return automata;
 }
 
-int finite_automaton_matcher(string s,map<pair<char,int>,int > delta,int m)
+
+/*string matching algorithm - O(n*alpha_size + n)
+ * computes the automata for the substring in O(n*alpha_size)
+ * then checks if substring satisfying the automata exists in main string
+ */
+int finite_automaton_matcher(string main_str,string sub,vector<char> alphabet)
 {
-  int n=s.size(),q=0,i,count=0;
-  for(i=0;i<n;i++)
+  int main_str_size=main_str.size(),sub_size=sub.size(),curr_idx,count=0;
+  
+  //automata representing the substring
+  map<pair<char,int>,int > delta=compute_transition_function(sub,alphabet);
+  
+  for(int i=0;i<main_str_size;i++)
   {
     pair<char,int> temp;
-    temp.first=s[i];
-    temp.second=q;
-    q=delta[temp];
-    if(q==m)
+    temp.first=main_str[i];
+    temp.second=curr_idx;
+    curr_idx=delta[temp];
+    //transition from prev state to current state based on the character and curr position in substring automata
+    if(curr_idx==sub_size)
     {
       printf("\npattern occurs with shift :-%d",i-m+1);
       count++;
     }
   }
+  
   return count;
 }
 
-vector<int> compute_prefix_function(string p)
+vector<int> compute_prefix_function(string param)
 {
-  int m=p.size(),k=0;
-  vector<int> pre(m,0);
+  int param_size=param.size(),k=0;
+  vector<int> pre(param_size,0);
   pre[0]=0;
-  for(int q=1;q<m;q++)
+  for(int q=1;q<param_size;q++)
   {
-    while(k>0 && p[k]!=p[q])
+    while(k>0 && param[k]!=param[q])
       k=pre[k];
-    if(p[k]==p[q])
+    if(param[k]==param[q])
       k++;
     pre[q]=k;
   }
   return pre;
 }
 
-int kmp_matcher(string s,string sub)
+int kmp_matcher(string main_str,string sub)
 {
-  int n=s.size(),m=sub.size(),q=0,count=0;
+  int main_str_size=main_str.size(),sub_size=sub.size(),curr_idx=0,count=0;
   vector<int> pre=compute_prefix_function(sub);
-  printf("\n");
-  for(int i=0;i<pre.size();i++)
-    printf("%d ",pre[i]);
-  printf("\n");
-  for(int i=0;i<n;i++)
+  
+  for(int i=0;i<main_str_size;i++)
   {
-    while(q>0 && sub[q]!=s[i])
-      q=pre[q-1];
-    if(sub[q]==s[i])
-      q++;
-    if(q==m-1)
+    while(curr_idx>0 && sub[curr_idx]!=main_str[i])
+      curr_idx=pre[curr_idx-1];
+    if(sub[curr_idx]==main_str[i])
+      curr_idx++;
+    if(curr_idx==sub_size-1)
     {
-      printf("\npattern occurs with shift :- %d",i-m+2);
+      printf("\npattern occurs with shift :- %d",i-sub_size+2);
       count++;
-      q=pre[q-1];
+      curr_idx=pre[curr_idx-1];
     }
   }
   return count;
 }
 
-void lcs(string a,string b)
+
+int lcs(string left_opr,string right_opr)
 {
-  int n=a.size(),m=b.size(),i,j;
-  printf("\n%d %d\n",n,m);
-  vector<vi> c(n+1);
-  foru(i,0,n+1)
-    c[i].resize(m+1,0);
-  foru(i,1,n+1)
+  int n=left_opr.size(),m=right_opr.size();
+  vector<vector<int> > intermediate_cost(n+1);
+  for(int i=0;i<=n;i++)
   {
-    foru(j,1,m+1)
+    intermediate_cost[i].resize(m+1);
+    intermediate_cost[i][0]=i;
+  }
+  for(int j=0;j<=m;j++)
+  {
+    intermediate_cost[0][j]=j;
+  }
+  
+  for(int i=1;i<=n;i++)
+  {
+    for(int j=1;j<=m;j++)
     {
-      if(a[i-1]==b[j-1])
-	c[i][j]=c[i-1][j-1]+1;
+      if(left_opr[i-1]==right_opr[j-1])
+	intermediate_cost[i][j]=intermediate_cost[i-1][j-1]+1;
       else 
       {
-	if(c[i-1][j]>c[i][j-1])
-	  c[i][j]=c[i-1][j];
+	if(intermediate_cost[i-1][j]>intermediate_cost[i][j-1])
+	  intermediate_cost[i][j]=intermediate_cost[i-1][j];
 	else
-	  c[i][j]=c[i][j-1];
+	  intermediate_cost[i][j]=intermediate_cost[i][j-1];
       }
     }
   }
-  printf("\n%d\n",c[n][m]);
-  return;
+  
+  return intermediate_cost[n][m];
 }
 
-int string_compare(string a,string b)
+
+int string_compare(string left_opr,string right_opr)
 {
-  int cost[3],i,j;
-  int n=a.size(),m=b.size();
-  vector<vi> c(n+1);
-  foru(i,0,n+1)
+  int n=left_opr.size(),m=right_opr.size();
+  int cost[3]
+  vector<vector<int> > intermediate_cost(n+1);
+  for(int i=0;i<=n;i++)
   {
-    c[i].resize(m+1);
-    c[i][0]=i;
+    intermediate_cost[i].resize(m+1);
+    intermediate_cost[i][0]=i;
   }
-  foru(j,0,m+1)
-    c[0][j]=j;
-  foru(i,1,n+1)
+  for(int j=0;j<=m;j++)
   {
-    foru(j,1,m+1)
+    intermediate_cost[0][j]=j;
+  }
+  
+  for(int i=1;i<=n;i++)
+  {
+    for(int j=1;j<=m;j++)
     {
-      if(a[i-1]==b[j-1])
-	cost[0]=c[i-1][j-1];
+      if(left_opr[i-1]==right_opr[j-1])
+	cost[0]=intermediate_cost[i-1][j-1];
       else
-	cost[0]=c[i-1][j-1]+1;
-      cost[1]=c[i][j-1]+1;
-      cost[2]=c[i-1][j]+1;
-      c[i][j]=cost[0];
-      int k;
-      foru(k,1,3)
+	cost[0]=intermediate_cost[i-1][j-1]+1;
+      cost[1]=intermediate_cost[i][j-1]+1;
+      cost[2]=intermediate_cost[i-1][j]+1;
+      intermediate_cost[i][j]=cost[0];
+      for(int k=1;k<3;k++)
       {
-	if(cost[k]<c[i][j])
-	  c[i][j]=cost[k];
+	if(cost[k]<intermediate_cost[i][j])
+	  intermediate_cost[i][j]=cost[k];
       }
     }
   }
-  printf("%d\n",c[n][m]);
+  
+  return intermediate_cost[n][m];
 }
