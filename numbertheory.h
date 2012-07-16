@@ -2,6 +2,7 @@
 #include<map>
 #include<cstdio>
 #include<cmath>
+#include<iostream>
 
 using namespace std;
 
@@ -10,35 +11,21 @@ map<int,map<int,int> > dp_factor;
 
 void find_prime()
 {
-  vector<bool> seive(1000000,0);
+  vector<bool> seive(1000010,0);
   long long int i,j;
-  for(i=2;i<1000;i++)
+  for(i=2;i*i<1000010;i++)
   {
     if(seive[i]==0)
     {
-      prime.push_back(i);
-      for(j=2;j*i<1000000;j++)
+      for(j=2;j*i<1000010;j++)
 	seive[i*j]=1;
     }
   }
-  for(i=1000;i<seive.size();i++)
+  for(i=2;i<seive.size();i++)
   {
     if(seive[i]==0)
       prime.push_back(i);
   }
-}
-
-map<int,int> operator+(map<int,int> a,map<int,int> b)
-{
-  map<int,int>::iterator bit;
-  for(bit=b.begin();bit!=b.end();bit++)
-  {
-    if(a.find(bit->second)!=a.end())
-      a[bit->second]+=bit->first;
-    else
-      a[bit->second]=bit->first;
-  }
-  return a;
 }
 
 map<int,int> factorize(int a)
@@ -78,38 +65,31 @@ int extended_euclid(int a,int b,int &x,int &y)
   {
     x=1;
     y=0;
-    printf("\nx=%d y=%d\n",x,y);
     return a;
   }
   int gcd=extended_euclid(b,a%b,x,y),x_=x;
   x=y;
   y=x_-(a/b)*y;
-  printf("\nx=%d y=%d\n",x,y);
   return gcd;
 }
 
-int modular_exponentiation(int a,int b,int m)
+template < class T >
+T modular_exponentiation(T base,T exponent,T mod)
 {
-  int result=a,c=1;
-  while(c*2<=b)
+  T result=1;
+  while(exponent)
   {
-    result=(result*result)%m;
-    c*=2;
-  }
-  while(c<b)
-  {
-    result=(result*a)%m;
-    c++;
+    if(exponent&1)
+      result=(result*base)%mod;
+    if(exponent>>=1)
+      result=(result*result)%mod;    
   }
   return result;
 }
 
-double short_exp(int a,int b)
+inline double short_exp(int a,int b)
 {
-  double ans=exp(b*log(a));
- /*if(find(prime.begin(),prime.end(),b)==prime.end() && find(prime.begin(),prime.end(),a)==prime.end())
-  {ans+=1;printf("\n1\n");}*/
-  return ans;
+  return exp(b*log(a));
 }
 
 int euler_totient(int a)
@@ -130,7 +110,6 @@ int no_of_div(int a)
   int result=1;
   for(map<int,int>::iterator mit=x.begin();mit!=x.end();mit++)
   {
-    printf("\n%d %d\n",mit->first,mit->second);
     result*=(1+(mit->second));
   }
   return result;
@@ -140,7 +119,6 @@ void modular_linear_equ_solver(int a,int b,int n)
 {
   int x,y;
   int d=extended_euclid(a,n,x,y);
-  printf("\n%d\n",d);
   if(b%d==0)
   {
     int x0=(x*(b/d))%n;
@@ -157,4 +135,3 @@ void modular_inverse(int a,int n)
 {
   modular_linear_equ_solver(a,1,n);
 }
-  
