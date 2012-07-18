@@ -1,0 +1,3 @@
+It implements most of the generally used algorithms in graph theory,number thoery, string operations(searching and pattern matching), computational geometry and implements classes for fractions, matrices, polynomials and complex numbers. 
+
+This was mostly written for programming contests, so is not very well documented. But beginners can still find it to be very useful for learning the basic algorithm. 
